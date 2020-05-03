@@ -331,6 +331,9 @@ class CheetahGenerator(weewx.reportengine.ReportGenerator):
                 # Open in binary mode. We are writing a byte-string, not a string
                 with open(tmpname, mode='wb') as fd:
                     fd.write(byte_string)
+                if os.path.exists(_fullname):
+                    # windows requires an explicit remove before rename
+                    os.remove(_fullname)
                 os.rename(tmpname, _fullname)
 
             except Exception as e:

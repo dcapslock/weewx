@@ -803,4 +803,3 @@ class StdReport(StdService):
                 log.debug("StdReport thread has been terminated")
         self.thread = None
         self.launch_time = None
-
