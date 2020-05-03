@@ -19,9 +19,10 @@ import time
 
 from weewx.units import INHG_PER_MBAR, MILE_PER_KM
 import weewx.drivers
+import weewx.wxformulas
 
 DRIVER_NAME = 'WS1'
-DRIVER_VERSION = '0.25'
+DRIVER_VERSION = '0.26'
 
 
 def loader(config_dict, _):
@@ -128,11 +129,8 @@ class WS1Driver(weewx.drivers.AbstractDevice):
 
     def _augment_packet(self, packet):
         # calculate the rain delta from rain total
-        if self.last_rain is not None:
-            packet['rain'] = packet['rain_total'] - self.last_rain
-        else:
-            packet['rain'] = None
-        self.last_rain = packet['rain_total']
+        packet['rain'] = weewx.wxformulas.calculate_rain(packet.get('rain_total'), self.last_rain)
+        self.last_rain = packet.get('rain_total')
 
 
 # =========================================================================== #
@@ -168,7 +166,7 @@ class StationData(object):
           DD   - wind direction (0-255)
           TTTT - outdoor temperature (0.1 F)
           LLLL - long term rain (0.01 in)
-          PPPP - pressure (0.1 mbar)
+          PPPP - barometer (0.1 mbar)
           tttt - indoor temperature (0.1 F)
           HHHH - outdoor humidity (0.1 %)
           hhhh - indoor humidity (0.1 %)
@@ -179,14 +177,13 @@ class StationData(object):
         """
         # FIXME: peetbros could be 40 bytes or 44 bytes, what about ws1?
         # FIXME: peetbros uses two's complement for temp, what about ws1?
-        # FIXME: for ws1 is the pressure reading 'pressure' or 'barometer'?
         buf = raw[2:]
         data = dict()
         data['windSpeed'] = StationData._decode(buf[0:4], 0.1 * MILE_PER_KM) # mph
         data['windDir'] = StationData._decode(buf[6:8], 1.411764)  # compass deg
         data['outTemp'] = StationData._decode(buf[8:12], 0.1, True)  # degree_F
         data['rain_total'] = StationData._decode(buf[12:16], 0.01)  # inch
-        data['pressure'] = StationData._decode(buf[16:20], 0.1 * INHG_PER_MBAR)  # inHg
+        data['barometer'] = StationData._decode(buf[16:20], 0.1 * INHG_PER_MBAR)  # inHg
         data['inTemp'] = StationData._decode(buf[20:24], 0.1, True)  # degree_F
         data['outHumidity'] = StationData._decode(buf[24:28], 0.1)  # percent
         data['inHumidity'] = StationData._decode(buf[28:32], 0.1)  # percent
@@ -207,7 +204,7 @@ class StationData(object):
                     v -= (1 << bits)
             if multiplier is not None:
                 v *= multiplier
-        except ValueError, e:
+        except ValueError as e:
             if s != '----':
                 logdbg("decode failed for '%s': %s" % (s, e))
         return v
@@ -261,7 +258,7 @@ class StationSerial(object):
                 buf = self.get_readings()
                 StationData.validate_string(buf)
                 return buf
-            except (serial.serialutil.SerialException, weewx.WeeWxIOError), e:
+            except (serial.serialutil.SerialException, weewx.WeeWxIOError) as e:
                 loginf("Failed attempt %d of %d to get readings: %s" %
                        (ntries + 1, max_tries, e))
                 time.sleep(wait_before_retry)
@@ -304,7 +301,7 @@ class StationSocket(object):
             elif protocol == 'udp':
                 self.net_socket = socket.socket(
                     socket.AF_INET, socket.SOCK_DGRAM)
-        except (socket.error, socket.herror), ex:
+        except (socket.error, socket.herror) as ex:
             logerr("Cannot create socket for some reason: %s" % ex)
             raise weewx.WeeWxIOError(ex)
 
@@ -322,7 +319,7 @@ class StationSocket(object):
                     logdbg("Retrying connection...")
                 self.net_socket.connect(self.conn_info)
                 break
-            except (socket.error, socket.timeout, socket.herror), ex:
+            except (socket.error, socket.timeout, socket.herror) as ex:
                 logerr("Cannot connect to %s:%d for some reason: %s. "
                        "%d tries left." % (
                            self.conn_info[0], self.conn_info[1], ex,
@@ -341,7 +338,7 @@ class StationSocket(object):
                (self.conn_info[0], self.conn_info[1]))
         try:
             self.net_socket.close()
-        except (socket.error, socket.herror, socket.timeout), ex:
+        except (socket.error, socket.herror, socket.timeout) as ex:
             logerr("Cannot close connection to %s:%d. Reason: %s" % (
                 self.conn_info[0], self.conn_info[1], ex))
             raise weewx.WeeWxIOError(ex)
@@ -356,7 +353,7 @@ class StationSocket(object):
             while True:
                 try:
                     buf += self.net_socket.recv(8, socket.MSG_WAITALL)
-                except (socket.error, socket.timeout), ex:
+                except (socket.error, socket.timeout) as ex:
                     raise weewx.WeeWxIOError(ex)
                 if DEBUG_READ >= 1:
                     logdbg("(searching...) buf: %s" % buf)
@@ -373,13 +370,13 @@ class StationSocket(object):
             try:
                 buf += self.net_socket.recv(
                     PACKET_SIZE - len(buf), socket.MSG_WAITALL)
-            except (socket.error, socket.timeout), ex:
+            except (socket.error, socket.timeout) as ex:
                 raise weewx.WeeWxIOError(ex)
         else:
             # Keep receiving data until we find an exclamation point or two
             try:
                 buf = self.net_socket.recv(2, socket.MSG_WAITALL)
-            except (socket.error, socket.timeout), ex:
+            except (socket.error, socket.timeout) as ex:
                 raise weewx.WeeWxIOError(ex)
             while True:
                 if buf == '\r\n':
@@ -398,7 +395,7 @@ class StationSocket(object):
                 else:
                     try:
                         buf = self.net_socket.recv(2, socket.MSG_WAITALL)
-                    except (socket.error, socket.timeout), ex:
+                    except (socket.error, socket.timeout) as ex:
                         raise weewx.WeeWxIOError(ex)
                     if DEBUG_READ >= 2:
                             logdbg("buf: %s" % ' '.join(
@@ -406,7 +403,7 @@ class StationSocket(object):
             try:
                 buf += self.net_socket.recv(
                     PACKET_SIZE - len(buf), socket.MSG_WAITALL)
-            except (socket.error, socket.timeout), ex:
+            except (socket.error, socket.timeout) as ex:
                 raise weewx.WeeWxIOError(ex)
         if DEBUG_READ >= 2:
             logdbg("buf: %s" % buf)
@@ -421,7 +418,7 @@ class StationSocket(object):
                 buf = self.get_readings()
                 StationData.validate_string(buf)
                 return buf
-            except (weewx.WeeWxIOError), e:
+            except (weewx.WeeWxIOError) as e:
                 logdbg("Failed to get data. Reason: %s" % e)
                 self.rec_start = False
 

@@ -109,7 +109,7 @@
     </tr>
     <tr>
       <td>Outside Temperature trend where previous value is known to be None (9000 seconds)</td>
-      <td>   N/A</td>
+      <td>9.2&#176;F</td>
     </tr>
     <tr>
       <td>Trend with nonsense type</td>
@@ -270,11 +270,11 @@
     </tr>
     <tr>
       <td>Min Temperature in last 90 min (via $span($time_delta=5400)):</td>
-      <td>44.6&#176;F</td>
+      <td>45.3&#176;F</td>
     </tr>
     <tr>
       <td>Min Temperature in last 90 min (via $span($hour_delta=1.5)):</td>
-      <td>44.6&#176;F</td>
+      <td>45.3&#176;F</td>
     </tr>
     <tr>
       <td>Max Temperature in last 24 hours (via $span($time_delta=86400)):</td>
@@ -306,15 +306,15 @@
     </tr>
     <tr>
       <td>Rainfall in last 24 hours (via $span($time_delta=86400)):</td>
-      <td>0.95 in</td>
+      <td>0.96 in</td>
     </tr>
     <tr>
       <td>Rainfall in last 24 hours (via $span($hour_delta=24)):</td>
-      <td>0.95 in</td>
+      <td>0.96 in</td>
     </tr>
     <tr>
       <td>Rainfall in last 24 hours (via $span($day_delta=1)):</td>
-      <td>0.95 in</td>
+      <td>0.96 in</td>
     </tr>
     <tr>
       <td>Max Windchill in last hour (existing obs type that is None):</td>
@@ -388,7 +388,7 @@
     </tr>
     <tr>
       <td>Sum aggregation (rain)</td>
-      <td>0.58 in</td>
+      <td>0.59 in</td>
     </tr>
     <tr>
       <td>High Wind from "$day.wind.max"</td>
@@ -490,7 +490,7 @@
   <table>
     <tr>
       <td>Rainyear total</td>
-      <td>58.68 in</td>
+      <td>59.52 in</td>
     </tr>
   </table>
     
@@ -535,7 +535,7 @@
     </tr>
     <tr>
        <td align="right">Moon:</td>
-       <td align="left">Last quarter (29%full)</td>
+       <td align="left">Waning crescent (29%full)</td>
     </tr>
   </table>
   
@@ -557,6 +557,11 @@
     </tr>
     <tr>
       <td align="right">Example from customizing guide<br/>
+      (&quot;$day.outTemp.max.format(add_label=False)$unit.label.outTemp&quot;)</td>
+      <td align="left">63.3&#176;F</td>
+    </tr>
+    <tr>
+      <td align="right">Test the above with backwards compatibility<br/>
       (&quot;$day.outTemp.max.formatted$unit.label.outTemp&quot;)</td>
       <td align="left">63.3&#176;F</td>
     </tr>
@@ -595,7 +600,71 @@
   </table>
 
   <hr/>
-  
+
+  <h1>Test for formatting examples in the Customizing Guide</h1>
+  <table>
+      <tr>
+        <td align="right">$current.outTemp</td>
+        <td align="left">50.3&#176;F</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.format</td>
+        <td align="left">50.3&#176;F</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.format()</td>
+        <td align="left">50.3&#176;F</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.format(format_string="%.3f")</td>
+        <td align="left">50.284&#176;F</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.format("%.3f")</td>
+        <td align="left">50.284&#176;F</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.format(add_label=False)</td>
+        <td align="left">50.3</td>
+      </tr>
+      <tr>
+        <td align="right">$current.UV</td>
+        <td align="left">   N/A</td>
+      </tr>
+      <tr>
+        <td align="right">$current.UV.format(None_string="No UV")</td>
+        <td align="left">No UV</td>
+      </tr>
+      <tr>
+        <td align="right">$current.windDir</td>
+        <td align="left">129&#176;</td>
+      </tr>
+      <tr>
+        <td align="right">$current.windDir.ordinal_compass</td>
+        <td align="left">SE</td>
+      </tr>
+      <tr>
+        <td align="right">$current.dateTime</td>
+        <td align="left">03-Sep-2010 11:20</td>
+      </tr>
+      <tr>
+        <td align="right">$current.dateTime.format(format_string="%H:%M")</td>
+        <td align="left">11:20</td>
+      </tr>
+      <tr>
+        <td align="right">$current.dateTime.format("%H:%M")</td>
+        <td align="left">11:20</td>
+      </tr>
+      <tr>
+        <td align="right">$current.dateTime.raw</td>
+        <td align="left">1283538000</td>
+      </tr>
+      <tr>
+        <td align="right">$current.outTemp.raw</td>
+        <td align="left">50.2842637519</td>
+      </tr>
+  </table>
+    
   <h1>Day images</h1>
   <p>
   <img src="daytempdew.png" alt="temperatures" />
