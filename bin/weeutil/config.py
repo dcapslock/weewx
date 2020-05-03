@@ -1,3 +1,13 @@
+#
+#    Copyright (c) 2018-2019 Tom Keffer <tkeffer@gmail.com>
+#
+#    See the file LICENSE.txt for your full rights.
+#
+
+"""Convenience functions for ConfigObj"""
+
+from __future__ import absolute_import
+
 import configobj
 from configobj import Section
 
@@ -175,3 +185,44 @@ def delete_scalar(a_dict, key):
 
     del a_dict[key]
     return 1
+
+
+def conditional_merge(a_dict, b_dict):
+    """Merge fields from b_dict into a_dict, but only if they do not yet
+    exist in a_dict"""
+    # Go through each key in b_dict
+    for k in b_dict:
+        if isinstance(b_dict[k], dict):
+            if k not in a_dict:
+                # It's a new section. Initialize it...
+                a_dict[k] = {}
+                # ... and transfer over the section comments, if available
+                try:
+                    a_dict.comments[k] = b_dict.comments[k]
+                except AttributeError:
+                    pass
+            conditional_merge(a_dict[k], b_dict[k])
+        elif k not in a_dict:
+            # It's a scalar. Transfer over the value...
+            a_dict[k] = b_dict[k]
+            # ... then its comments, if available:
+            try:
+                a_dict.comments[k] = b_dict.comments[k]
+            except AttributeError:
+                pass
+
+
+def config_from_str(input_str):
+    """Return a ConfigObj from a string. Values will be in Unicode."""
+    import six
+    from six import StringIO
+    # This is a bit of a hack. We want to return a ConfigObj with unicode values. Under Python 2,
+    # ConfigObj v5 requires a unicode input string, but earlier versions require a
+    # byte-string.
+    if configobj.__version__ >= '5.0.0':
+        # Convert to unicode
+        open_str = six.ensure_text(input_str)
+    else:
+        open_str = input_str
+    config = configobj.ConfigObj(StringIO(open_str), encoding='utf-8', default_encoding='utf-8')
+    return config

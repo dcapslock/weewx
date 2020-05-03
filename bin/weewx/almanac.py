@@ -8,6 +8,7 @@
 This module can optionally use PyEphem, which offers high quality
 astronomical calculations. See http://rhodesmill.org/pyephem. """
 
+from __future__ import absolute_import
 from __future__ import print_function
 import time
 import sys
@@ -58,6 +59,7 @@ class Almanac(object):
     These examples are designed to work in the Pacific timezone
     >>> import os
     >>> os.environ['TZ'] = 'America/Los_Angeles'
+    >>> time.tzset()
     >>> from weeutil.weeutil import timestamp_to_string, timestamp_to_gmtime
     >>> t = 1238180400
     >>> print(timestamp_to_string(t))
@@ -83,23 +85,23 @@ class Almanac(object):
     Fullness of the moon (more precise) is 1.70%
 
     Test backwards compatibility with attributes 'sunrise' and 'sunset'
-    >>> print("Sunrise, sunset:", almanac.sunrise, almanac.sunset)
+    >>> print("Sunrise, sunset: %s %s" % (almanac.sunrise, almanac.sunset))
     Sunrise, sunset: 06:56 19:30
 
     Get sunrise, sun transit, and sunset using the new 'ephem' syntax:
-    >>> print("Sunrise, sun transit, sunset:", almanac.sun.rise, almanac.sun.transit, almanac.sun.set)
+    >>> print("Sunrise, sun transit, sunset: %s %s %s" % (almanac.sun.rise, almanac.sun.transit, almanac.sun.set))
     Sunrise, sun transit, sunset: 06:56 13:13 19:30
     
     Do the same with the moon:
-    >>> print("Moon rise, transit, set:", almanac.moon.rise, almanac.moon.transit, almanac.moon.set)
+    >>> print("Moon rise, transit, set: %s %s %s" % (almanac.moon.rise, almanac.moon.transit, almanac.moon.set))
     Moon rise, transit, set: 06:59 14:01 21:20
     
     And Mars
-    >>> print("Mars rise, transit, set:", almanac.mars.rise, almanac.mars.transit, almanac.mars.set)
+    >>> print("Mars rise, transit, set: %s %s %s" % (almanac.mars.rise, almanac.mars.transit, almanac.mars.set))
     Mars rise, transit, set: 06:08 11:34 17:00
     
     Finally, try a star
-    >>> print("Rigel rise, transit, set:", almanac.rigel.rise, almanac.rigel.transit, almanac.rigel.set)
+    >>> print("Rigel rise, transit, set: %s %s %s" % (almanac.rigel.rise, almanac.rigel.transit, almanac.rigel.set))
     Rigel rise, transit, set: 12:32 18:00 23:28
 
     Exercise sidereal time
@@ -229,19 +231,19 @@ class Almanac(object):
 
     def _precalc(self):
         """Precalculate local variables."""
-        self.time_djd     = timestamp_to_djd(self.time_ts)
-        (y,m,d) = time.localtime(self.time_ts)[0:3]
-        (self.moon_index, self._moon_fullness) = weeutil.Moon.moon_phase(y, m, d)
+        (self.moon_index, self._moon_fullness) = weeutil.Moon.moon_phase_ts(self.time_ts)
         self.moon_phase = self.moon_phases[self.moon_index]
-            
+        self.time_djd     = timestamp_to_djd(self.time_ts)
+
         # Check to see whether the user has module 'ephem'. 
         if 'ephem' in sys.modules:
             
             self.hasExtras = True
 
         else:
-            
+
             # No ephem package. Use the weeutil algorithms, which supply a minimum of functionality
+            (y, m, d) = time.localtime(self.time_ts)[0:3]
             (sunrise_utc_h, sunset_utc_h) = weeutil.Sun.sunRiseSet(y, m, d, self.lon, self.lat)
             sunrise_ts = weeutil.weeutil.utc_to_ts(y, m, d, sunrise_utc_h)
             sunset_ts  = weeutil.weeutil.utc_to_ts(y, m, d, sunset_utc_h)
